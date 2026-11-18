@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Roll Streak</title>
+<style>
+:root{--bg:#0f1115;--card:#181b22;--line:#2a2f3a;--text:#eef0f4;--muted:#9aa3b2;--mat:#ff4d4d;--gym:#3ddc97;--gold:#ffc53d;color-scheme:dark}
+@media (prefers-color-scheme:light){:root:not([data-theme="dark"]){--bg:#f5f6f8;--card:#fff;--line:#dfe3ea;--text:#14171c;--muted:#5b6474;color-scheme:light}}
+:root[data-theme="dark"]{--bg:#0f1115;--card:#181b22;--line:#2a2f3a;--text:#eef0f4;--muted:#9aa3b2;color-scheme:dark}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+body{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+header{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;gap:8px}
+.brand{font-weight:800;font-size:20px}
+#pill{background:var(--gold);color:#111;font-weight:800;padding:6px 12px;border-radius:999px}
+nav,.seg{display:flex;gap:6px;padding:0 12px}
+.seg{padding:0;margin-bottom:12px}
+nav button,.seg button{flex:1;padding:10px;border:0;border-radius:10px;background:var(--card);color:var(--muted);font-weight:600;cursor:pointer}
+nav button.on,.seg button.on{background:var(--text);color:var(--bg)}
+main,.wrap{padding:12px;max-width:640px;margin:0 auto}
+.wrap{max-width:420px;margin-top:40px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:12px}
+.hero{text-align:center}
+.hero-num{font-size:72px;font-weight:900;line-height:1;color:var(--gold)}
+.sub{color:var(--muted);font-size:14px}
+.bar{height:10px;background:var(--line);border-radius:99px;overflow:hidden;margin:12px 0 6px}
+#bar-fill{height:100%;width:0;background:linear-gradient(90deg,var(--gold),var(--mat));transition:width .6s}
+label{display:block;font-size:14px;color:var(--muted);margin-bottom:10px}
+input,select,textarea{width:100%;margin-top:4px;padding:10px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--text);font:inherit}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.primary{width:100%;padding:14px;border:0;border-radius:12px;background:var(--mat);color:#fff;font-weight:800;font-size:17px;cursor:pointer}
+.primary:disabled{opacity:.6}
+.ghost{background:none;border:1px solid var(--line);color:var(--muted);border-radius:8px;padding:6px 10px;cursor:pointer;font-size:13px}
+.grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-top:10px}
+.cell{aspect-ratio:1;border-radius:8px;background:var(--line);display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--muted)}
+.cell.mat{background:var(--mat);color:#fff}
+.cell.gym{background:var(--gym);color:#032}
+.cell.today{outline:2px solid var(--gold)}
+.chip{display:inline-block;font-size:12px;padding:2px 8px;border-radius:99px;background:var(--line);margin:2px 4px 0 0}
+.entry{border-bottom:1px solid var(--line);padding:12px 0}
+.entry:last-child{border:0}
+.notes{white-space:pre-wrap;margin:6px 0}
+.del{background:none;border:0;color:var(--mat);cursor:pointer;font-size:13px;padding:0}
+.badge{font-size:12px;color:var(--gym)}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px}
+.stat b{display:block;font-size:26px}
+#msg,#a-msg{color:var(--muted);font-size:14px;min-height:20px;margin-top:8px}
+.hidden{display:none!important}
+#pop{position:fixed;inset:0;background:rgba(0,0,0,.72);display:none;align-items:center;justify-content:center;z-index:60;padding:20px}
+#pop.show{display:flex}
+.popcard{background:var(--card);border:2px solid var(--gold);border-radius:24px;padding:28px;text-align:center;max-width:340px;width:100%;animation:pop .45s cubic-bezier(.2,1.6,.4,1)}
+.popcard.mat{border-color:var(--mat)}
+.popcard.gym{border-color:var(--gym)}
+.big{font-size:96px;font-weight:900;line-height:1;color:var(--gold)}
+.pt{font-size:26px;font-weight:900;margin:6px 0}
+.xp{display:inline-block;margin-top:10px;padding:4px 12px;border-radius:99px;background:var(--gold);color:#111;font-weight:800}
+@keyframes pop{from{transform:scale(.3);opacity:0}}
+#confetti{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:70}
+#confetti i{position:absolute;top:-16px;width:9px;height:15px;border-radius:2px;animation:fall linear forwards}
+@keyframes fall{to{transform:translateY(110vh) rotate(720deg)}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}#confetti{display:none}}
+</style>
+</head>
+<body>
+
+<section id="auth" class="wrap">
+  <div class="card">
+    <div class="brand" style="text-align:center;margin-bottom:12px">🥋 Roll Streak</div>
+    <div class="seg"><button type="button" id="m-in" class="on">Log in</button><button type="button" id="m-up">Sign up</button></div>
+    <form id="authForm">
+      <label id="nameRow" class="hidden">Your name<input id="a-name" autocomplete="name"></label>
+      <label>Email<input id="a-email" type="email" required autocomplete="email"></label>
+      <label>Password<input id="a-pass" type="password" minlength="6" required autocomplete="current-password"></label>
+      <button class="primary" type="submit" id="a-btn">Log in</button>
+    </form>
+    <div id="a-msg"></div>
+  </div>
+</section>
+
+<div id="app" class="hidden">
+<header><div class="brand">🥋 Roll Streak</div><div style="display:flex;gap:8px;align-items:center"><div id="pill">🔥 0</div><button class="ghost" id="logout" type="button">Log out</button></div></header>
+<nav>
+  <button data-tab="log" class="on">Log</button>
+  <button data-tab="journal">Journal</button>
+  <button data-tab="stats">Stats</button>
+</nav>
+<main>
+<section id="tab-log">
+  <div class="card hero">
+    <div class="hero-num" id="hero-num">0</div>
+    <div class="sub">day streak</div>
+    <div class="bar"><div id="bar-fill"></div></div>
+    <div class="sub" id="hero-msg"></div>
+  </div>
+  <form class="card" id="form">
+    <label>Activity
+      <select id="type">
+        <optgroup label="🥋 Mat (syncs to Notion)">
+          <option>Fundamentals</option>
+          <option>Advanced</option>
+          <option>Open Mat</option>
+          <option>Competition Class</option>
+          <option>Private Lesson</option>
+        </optgroup>
+        <optgroup label="💪 Workout (app only, counts for streak)">
+          <option value="strength">Strength / S&amp;C</option>
+          <option value="cardio">Run / cycle / cardio</option>
+          <option value="other">Other workout</option>
+        </optgroup>
+      </select>
+    </label>
+    <div class="row">
+      <label>Date<input type="date" id="date" required></label>
+      <label>Minutes<input type="number" id="mins" min="0" max="600" value="60"></label>
+    </div>
+    <div class="row">
+      <label>Gi / No-Gi
+        <select id="gi"><option value="">-</option><option>Gi</option><option>No-Gi</option></select>
+      </label>
+      <label>Sparring rounds<input type="number" id="rounds" min="0" max="50"></label>
+    </div>
+    <label>Energy
+      <select id="energy"><option value="">-</option><option value="high">🔥 High</option><option value="normal">👍 Normal</option><option value="low">😓 Low</option></select>
+    </label>
+    <label>Techniques and notes<textarea id="notes" rows="4" placeholder="What you drilled, rolls, what worked, what to fix next..."></textarea></label>
+    <label>Key takeaway<input id="takeaway" placeholder="One thing to remember"></label>
+    <label>Tags<input id="tags" placeholder="armbar, guard, sweeps"></label>
+    <button class="primary" type="submit" id="save">Log it</button>
+    <div id="msg"></div>
+  </form>
+  <div class="card">
+    <div class="sub">Last 4 weeks (red = mat, green = workout)</div>
+    <div class="grid" id="grid"></div>
+  </div>
+</section>
+<section id="tab-journal" class="hidden">
+  <input id="search" placeholder="Search notes, tags, or class type" style="margin-bottom:12px">
+  <div class="card" id="journal"></div>
+</section>
+<section id="tab-stats" class="hidden"><div class="stats" id="stats"></div></section>
+</main>
+</div>
+
+<div id="pop"><div class="popcard" id="popcard"></div></div>
+<div id="confetti"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="config.js"></script>
+<script>
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+const $=id=>document.getElementById(id);
+const TYPES={
+  'Fundamentals':{l:'Fundamentals class',mat:1,xp:3},
+  'Advanced':{l:'Advanced class',mat:1,xp:3},
+  'Open Mat':{l:'Open mat',mat:1,xp:3},
+  'Competition Class':{l:'Competition',mat:1,xp:5},
+  'Private Lesson':{l:'Private lesson',mat:1,xp:2},
+  strength:{l:'Strength / S&C',mat:0,xp:2},
+  cardio:{l:'Cardio',mat:0,xp:2},
+  other:{l:'Workout',mat:0,xp:1}
+};
+const MILESTONES=[3,7,14,21,30,50,75,100,200,365];
+const info=t=>TYPES[t]||TYPES.other;
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
+const pad=n=>String(n).padStart(2,'0');
+const fmt=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+const today=()=>fmt(new Date());
+const addDays=(s,k)=>{const [y,m,d]=s.split('-').map(Number);return fmt(new Date(y,m-1,d+k));};
+const say=t=>{$('msg').textContent=t;};
+let user=null,entries=[],mode='in';
+
+// ---------- login ----------
+function setMode(m){
+  mode=m;
+  $('m-in').classList.toggle('on',m==='in');
+  $('m-up').classList.toggle('on',m==='up');
+  $('nameRow').classList.toggle('hidden',m!=='up');
+  $('a-btn').textContent=m==='up'?'Create account':'Log in';
+  $('a-msg').textContent='';
+}
+$('m-in').onclick=()=>setMode('in');
+$('m-up').onclick=()=>setMode('up');
+$('authForm').onsubmit=async e=>{
+  e.preventDefault();
+  const email=$('a-email').value.trim(),password=$('a-pass').value;
+  $('a-msg').textContent='Working...';
+  if(mode==='up'){
+    const name=$('a-name').value.trim()||email.split('@')[0];
+    const {data,error}=await sb.auth.signUp({email,password,options:{data:{name}}});
+    if(error)return $('a-msg').textContent=error.message;
+    $('a-msg').textContent=data.session?'':'Account created. Check your email to confirm, then log in.';
+  }else{
+    const {error}=await sb.auth.signInWithPassword({email,password});
+    if(error)return $('a-msg').textContent=error.message;
+    $('a-msg').textContent='';
+  }
+};
+$('logout').onclick=()=>sb.auth.signOut();
+sb.auth.onAuthStateChange((_event,session)=>{
+  user=session?session.user:null;
+  $('auth').classList.toggle('hidden',!!user);
+  $('app').classList.toggle('hidden',!user);
+  if(user){
+    $('logout').textContent='Log out ('+(user.user_metadata.name||user.email)+')';
+    setTimeout(loadEntries,0);
+  }else entries=[];
+});
+
+async function loadEntries(){
+  const {data,error}=await sb.from('entries').select('*').order('at',{ascending:false});
+  if(error)return alert('Could not load your entries: '+error.message);
+  entries=data;render();
+}
+
+// ---------- streak and views ----------
+function streak(){
+  const set=new Set(entries.map(e=>e.date));
+  let best=0,run=0,prev='';
+  for(const day of [...set].sort()){run=(prev&&addDays(prev,1)===day)?run+1:1;best=Math.max(best,run);prev=day;}
+  let d=today(),cur=0;
+  if(!set.has(d))d=addDays(d,-1);
+  while(set.has(d)){cur++;d=addDays(d,-1);}
+  return {cur,best,done:set.has(today())};
+}
+function dayKind(day){
+  const es=entries.filter(e=>e.date===day);
+  if(es.some(e=>info(e.type).mat))return 'mat';
+  return es.length?'gym':'';
+}
+function render(){
+  const s=streak();
+  $('pill').textContent='🔥 '+s.cur;
+  $('hero-num').textContent=s.cur;
+  const next=MILESTONES.find(m=>m>s.cur)||s.cur+1;
+  const prevMs=[0,...MILESTONES].filter(m=>m<=s.cur).pop();
+  $('bar-fill').style.width=Math.min(100,(s.cur-prevMs)/(next-prevMs)*100)+'%';
+  $('hero-msg').textContent=s.cur===0?'Log a session to start your streak.':
+    s.done?`Locked in for today. Next milestone: ${next} days.`:
+    `Log something today to keep your streak alive. Next milestone: ${next} days.`;
+  let g='';
+  for(let i=27;i>=0;i--){
+    const day=addDays(today(),-i);
+    g+=`<div class="cell ${dayKind(day)} ${i===0?'today':''}" title="${day}">${+day.slice(8)}</div>`;
+  }
+  $('grid').innerHTML=g;
+  journal();
+}
+function journal(){
+  const q=$('search').value.trim().toLowerCase();
+  const list=entries.filter(e=>!q||[e.notes,e.takeaway,(e.tags||[]).join(' '),info(e.type).l].join(' ').toLowerCase().includes(q));
+  $('journal').innerHTML=list.length?list.map(e=>{
+    const mat=info(e.type).mat;
+    const sync=mat?(e.notion_page_id?'<span class="badge">Notion ✓</span>':`<button class="ghost" data-sync="${esc(e.id)}">Sync to Notion</button>`):'';
+    return `<div class="entry">
+      <div class="sub">${esc(e.date)} · ${esc(info(e.type).l)} · ${+e.mins||0} min${e.gi?' · '+esc(e.gi):''}</div>
+      <div class="notes">${esc(e.notes||'')}</div>
+      ${e.takeaway?`<div><b>Takeaway:</b> ${esc(e.takeaway)}</div>`:''}
+      <div>${(e.tags||[]).map(t=>`<span class="chip">${esc(t)}</span>`).join('')}</div>
+      <div style="display:flex;gap:12px;align-items:center;margin-top:6px">${sync}<button class="del" data-del="${esc(e.id)}">Delete</button></div>
+    </div>`;
+  }).join(''):'<div class="sub">No sessions yet.</div>';
+}
+function statsView(){
+  const s=streak(),mat=entries.filter(e=>info(e.type).mat).length;
+  const mins=entries.reduce((a,e)=>a+(+e.mins||0),0);
+  const xp=entries.reduce((a,e)=>a+info(e.type).xp,0);
+  const count={};
+  entries.forEach(e=>(e.tags||[]).forEach(t=>count[t]=(count[t]||0)+1));
+  const top=Object.entries(count).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([t,n])=>`${esc(t)} (${n})`).join(', ')||'none yet';
+  const box=(l,v)=>`<div class="stat"><span class="sub">${l}</span><b>${v}</b></div>`;
+  $('stats').innerHTML=box('Current streak',s.cur+' days')+box('Best streak',s.best+' days')+
+    box('Mat sessions',mat)+box('Workouts',entries.length-mat)+box('Total hours',(mins/60).toFixed(1))+box('Total XP',xp)+
+    `<div class="stat" style="grid-column:1/-1"><span class="sub">Top tags</span><b style="font-size:16px">${top}</b></div>`;
+}
+
+// ---------- celebration ----------
+function confetti(n,colors){
+  const box=$('confetti');
+  for(let i=0;i<n;i++){
+    const p=document.createElement('i');
+    p.style.left=Math.random()*100+'vw';
+    p.style.background=colors[i%colors.length];
+    p.style.animationDelay=Math.random()*.5+'s';
+    p.style.animationDuration=(1.8+Math.random()*1.6)+'s';
+    box.appendChild(p);
+    setTimeout(()=>p.remove(),4500);
+  }
+}
+function closePop(){$('pop').classList.remove('show');}
+function celebrate(type,s,before,sameDay){
+  const t=info(type);
+  const ms=MILESTONES.includes(s.cur)&&s.cur>before;
+  let title,sub;
+  if(ms){title=s.cur+'-DAY STREAK!';sub='Milestone unlocked 🏆';}
+  else if(t.mat){title=sameDay?'MORE MAT TIME 🥋':'MAT DAY 🥋';sub=sameDay?'Extra XP stacked.':'Streak is alive.';}
+  else{title=sameDay?'MORE WORK 💪':'WORK DONE 💪';sub=sameDay?'Extra XP stacked.':'Work counts. Streak is alive.';}
+  const pc=$('popcard');
+  pc.className='popcard '+(t.mat?'mat':'gym');
+  pc.innerHTML=`<div class="big">${s.cur}</div><div class="pt">${title}</div><div class="sub">${sub}</div><span class="xp">+${t.xp} XP</span><div class="sub" style="margin-top:14px">Tap to close</div>`;
+  $('pop').classList.add('show');
+  confetti(ms?160:t.mat?120:70,t.mat?['#ff4d4d','#ffc53d','#ffffff']:['#3ddc97','#ffc53d','#7cc4ff']);
+  try{if(navigator.vibrate)navigator.vibrate(t.mat?[60,40,60]:[40]);}catch(e){}
+  clearTimeout(celebrate.timer);
+  celebrate.timer=setTimeout(closePop,3500);
+}
+$('pop').onclick=closePop;
+
+// ---------- logging ----------
+$('form').onsubmit=async e=>{
+  e.preventDefault();
+  const type=$('type').value,date=$('date').value||today();
+  const before=streak().cur,sameDay=entries.some(x=>x.date===date);
+  const row={
+    user_id:user.id,
+    member:user.user_metadata.name||user.email,
+    type,date,
+    mins:Math.max(0,+$('mins').value||0),
+    notes:$('notes').value.trim(),
+    tags:$('tags').value.split(',').map(t=>t.trim().toLowerCase()).filter(Boolean),
+    gi:$('gi').value||null,
+    rounds:$('rounds').value===''?null:+$('rounds').value,
+    energy:$('energy').value||null,
+    takeaway:$('takeaway').value.trim()||null
+  };
+  $('save').disabled=true;
+  const {data,error}=await sb.from('entries').insert(row).select().single();
+  $('save').disabled=false;
+  if(error)return say('Could not save: '+error.message);
+  entries.unshift(data);
+  let msg='Saved in the app.';
+  if(info(type).mat){
+    const r=await sb.functions.invoke('notion-sync',{body:{id:data.id}});
+    if(r.error||!r.data||!r.data.ok)msg='Saved in the app, but the Notion sync failed. Use "Sync to Notion" in the Journal to retry.';
+    else{data.notion_page_id=r.data.notion_page_id;msg='Saved and synced to Notion ✓';}
+  }
+  celebrate(type,streak(),before,sameDay);
+  say(msg);
+  ['notes','tags','takeaway','rounds'].forEach(id=>$(id).value='');
+  render();
+};
+
+$('journal').onclick=async e=>{
+  const d=e.target.dataset;
+  if(d.del){
+    if(!confirm('Delete this session from the app? The Notion page will stay.'))return;
+    const {error}=await sb.from('entries').delete().eq('id',d.del);
+    if(error)return alert(error.message);
+    entries=entries.filter(x=>x.id!==d.del);render();
+  }
+  if(d.sync){
+    e.target.disabled=true;e.target.textContent='Syncing...';
+    const r=await sb.functions.invoke('notion-sync',{body:{id:d.sync}});
+    if(r.error||!r.data||!r.data.ok)alert('Notion sync failed. Check the setup steps in the README.');
+    else{const en=entries.find(x=>x.id===d.sync);if(en)en.notion_page_id=r.data.notion_page_id;}
+    render();
+  }
+};
+$('search').oninput=journal;
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('on',x===b));
+  document.querySelectorAll('main section').forEach(s=>s.classList.toggle('hidden',s.id!=='tab-'+b.dataset.tab));
+  if(b.dataset.tab==='stats')statsView();
+  if(b.dataset.tab==='journal')journal();
+});
+
+$('date').value=today();
+setMode('in');
+</script>
+</body>
+</html>
