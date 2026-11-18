@@ -162,6 +162,7 @@ const today=()=>fmt(new Date());
 const addDays=(s,k)=>{const [y,m,d]=s.split('-').map(Number);return fmt(new Date(y,m-1,d+k));};
 const say=t=>{$('msg').textContent=t;};
 
+// ---------- storage (this device only) ----------
 let entries=[];
 try{entries=JSON.parse(localStorage.getItem(KEY))||[];}catch(e){entries=[];}
 if(!Array.isArray(entries))entries=[];
@@ -170,6 +171,7 @@ function persist(){
   catch(e){say('Could not save on this device. Export a backup from Stats.');}
 }
 
+// ---------- streak and views ----------
 function streak(){
   const set=new Set(entries.map(e=>e.date));
   let best=0,run=0,prev='';
@@ -227,6 +229,7 @@ function statsView(){
     `<div class="stat" style="grid-column:1/-1"><span class="sub">Top tags</span><b style="font-size:16px">${top}</b></div>`;
 }
 
+// ---------- celebration ----------
 function confetti(n,colors){
   const box=$('confetti');
   for(let i=0;i<n;i++){
@@ -258,6 +261,7 @@ function celebrate(type,s,before,sameDay){
 }
 $('pop').onclick=closePop;
 
+// ---------- logging ----------
 $('form').onsubmit=e=>{
   e.preventDefault();
   const type=$('type').value,date=$('date').value||today();
@@ -288,6 +292,7 @@ $('journal').onclick=e=>{
 };
 $('search').oninput=journal;
 
+// ---------- backup, import, Notion CSV ----------
 function download(name,text,type){
   const a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob([text],{type}));
